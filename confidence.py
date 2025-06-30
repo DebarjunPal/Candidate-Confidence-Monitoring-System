@@ -9,39 +9,38 @@ import traceback
 
 class EmotionConfidenceApp:
     def __init__(self):
-        # Initialize video capture
         self.cap = cv2.VideoCapture(0)
         if not self.cap.isOpened():
             raise Exception("Could not open video capture device")
         
-        # Load Haar Cascade face detector
+       
         self.face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
         if self.face_cascade.empty():
             raise Exception("Error loading face cascade classifier")
         
-        # Parameters for confidence calculation
-        self.confidence_history = deque(maxlen=30)  # Store last 30 frames of confidence
-        self.emotion_history = deque(maxlen=10)     # Store recent emotions for stability
+       
+        self.confidence_history = deque(maxlen=30)  
+        self.emotion_history = deque(maxlen=10)     
         self.start_time = time.time()
         self.frame_count = 0
         self.frame = None
         
-        # Confidence weights for each emotion (0-100)
+        
         self.emotion_confidence_scores = {
-            'angry': 30,     # Low confidence when angry
-            'disgust': 20,   # Very low confidence when disgusted
-            'fear': 25,      # Low confidence when afraid
-            'happy': 90,     # High confidence when happy
-            'sad': 40,       # Moderate-low confidence when sad
-            'surprise': 70,  # Moderate-high confidence when surprised
-            'neutral': 60    # Moderate confidence when neutral
+            'angry': 30,     
+            'disgust': 20,   
+            'fear': 25,      
+            'happy': 90,     
+            'sad': 40,       
+            'surprise': 70,  
+            'neutral': 60    
         }
         
-        # Setup display window
+       
         cv2.namedWindow('Emotion Confidence Monitor', cv2.WINDOW_NORMAL)
         cv2.resizeWindow('Emotion Confidence Monitor', 1200, 720)
         
-        # Plot configuration
+        
         self.fig = plt.figure(figsize=(5, 3), dpi=100)
         self.ax = self.fig.add_subplot(111)
         self.line, = self.ax.plot([], [], 'b-')
@@ -53,10 +52,10 @@ class EmotionConfidenceApp:
         self.ax.grid(True, alpha=0.3)
         self.fig.tight_layout()
         
-        # Initialize canvas for matplotlib
+        
         self.canvas = FigureCanvasAgg(self.fig)
         
-        # Initialize confidence score and emotion
+        
         self.confidence_history.append(0)
         self.current_confidence = 0
         self.current_emotion = "unknown"
@@ -67,46 +66,46 @@ class EmotionConfidenceApp:
         x, y, w, h = face_coords
         
         try:
-            # Make a copy to avoid modifying the original frame
+            
             face_img = face_roi.copy()
             
-            # Check if face ROI is valid
+            
             if face_img.size == 0 or face_img is None:
                 print("Invalid face ROI")
                 return 0, "unknown", {}
                 
-            # Ensure face has minimum dimensions to avoid DeepFace errors
+            
             if face_img.shape[0] < 48 or face_img.shape[1] < 48:
                 face_img = cv2.resize(face_img, (48, 48))
             
-            # Analyze emotions using DeepFace
+            
             analysis = DeepFace.analyze(face_img, actions=['emotion'], enforce_detection=False)
             
             if not analysis or len(analysis) == 0:
                 print("No analysis results returned")
                 return 0, "unknown", {}
                 
-            # Get dominant emotion and its score
+            
             dominant_emotion = analysis[0]['dominant_emotion']
             emotion_scores = analysis[0]['emotion']
             dominant_score = emotion_scores[dominant_emotion]
             
-            # Validate if the emotion is in our known categories
+            
             if dominant_emotion not in self.emotion_confidence_scores:
                 print(f"Unknown emotion detected: {dominant_emotion}")
                 dominant_emotion = "neutral"
             
-            # Add to emotion history
+            
             self.emotion_history.append(dominant_emotion)
             
-            # 1. Emotion-based confidence (40% of total)
+            
             emotion_base_score = self.emotion_confidence_scores[dominant_emotion]
             emotion_confidence = 0.4 * emotion_base_score
             
-            # 2. Certainty factor (20% of total) - how confident the model is about the emotion
+            
             certainty_factor = 0.2 * dominant_score
             
-            # 3. Face size relative to frame (15% of total)
+            
             if self.frame is not None:
                 frame_height, frame_width = self.frame.shape[:2]
                 size_factor = (w * h) / (frame_width * frame_height) * 100
@@ -114,7 +113,7 @@ class EmotionConfidenceApp:
             else:
                 size_score = 0
             
-            # 4. Face position - centered faces get higher scores (10% of total)
+            
             if self.frame is not None:
                 frame_height, frame_width = self.frame.shape[:2]
                 center_x = x + w/2
@@ -125,16 +124,16 @@ class EmotionConfidenceApp:
             else:
                 position_score = 0
             
-            # 5. Emotion stability - consistent emotions get higher scores (15% of total)
+            
             if len(self.emotion_history) >= 3:
-                # Count occurrences of the current emotion in history
+               
                 emotion_count = self.emotion_history.count(dominant_emotion)
                 stability_ratio = emotion_count / len(self.emotion_history)
                 stability_score = 15 * stability_ratio
             else:
                 stability_score = 0
             
-            # Combined confidence score (0-100)
+            
             total_confidence = min(100, emotion_confidence + certainty_factor + size_score + position_score + stability_score)
             
             return total_confidence, dominant_emotion, emotion_scores
@@ -152,7 +151,7 @@ class EmotionConfidenceApp:
             
             self.line.set_data(x, y)
             
-            # Convert matplotlib figure to OpenCV image
+            
             self.canvas.draw()
             plot_img = np.array(self.canvas.renderer.buffer_rgba())
             plot_img = cv2.cvtColor(plot_img, cv2.COLOR_RGBA2BGR)
@@ -160,46 +159,46 @@ class EmotionConfidenceApp:
             return plot_img
         except Exception as e:
             print(f"Error updating plot: {str(e)}")
-            # Return a blank image if there's an error
+            
             return np.ones((300, 500, 3), dtype=np.uint8) * 240
 
     def create_emotion_bar(self, emotion_scores, width=400, height=150):
         """Create a horizontal bar chart of emotion scores."""
         try:
-            # Create a blank image
+            
             bar_chart = np.ones((height, width, 3), dtype=np.uint8) * 240
             
-            # If no emotion scores, return the blank image
+            
             if not emotion_scores:
                 cv2.putText(bar_chart, "No emotions detected", (10, 75),
                            cv2.FONT_HERSHEY_SIMPLEX, 0.7, (100, 100, 100), 1)
                 return bar_chart
             
-            # Define colors for emotions (BGR format)
+            
             colors = {
-                'angry': (0, 0, 200),      # Red
-                'disgust': (0, 130, 0),    # Green
-                'fear': (130, 0, 130),     # Purple
-                'happy': (0, 215, 255),    # Yellow
-                'sad': (139, 69, 19),      # Brown
-                'surprise': (255, 140, 0), # Blue
-                'neutral': (128, 128, 128) # Gray
+                'angry': (0, 0, 200),      
+                'disgust': (0, 130, 0),   
+                'fear': (130, 0, 130),    
+                'happy': (0, 215, 255),    
+                'sad': (139, 69, 19),     
+                'surprise': (255, 140, 0), 
+                'neutral': (128, 128, 128) 
             }
             
-            # Sort emotions by score (highest first)
+            
             sorted_emotions = sorted(emotion_scores.items(), key=lambda x: x[1], reverse=True)
             
-            # Draw bars
+            
             max_bar_width = width - 150
             bar_height = 20
             start_y = 10
             
             for i, (emotion, score) in enumerate(sorted_emotions):
-                # Draw emotion label
+               
                 cv2.putText(bar_chart, f"{emotion}", (10, start_y + 15), 
                            cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1)
                 
-                # Draw bar
+                
                 bar_width = int(max_bar_width * score / 100)
                 cv2.rectangle(bar_chart, 
                              (100, start_y), 
@@ -207,7 +206,7 @@ class EmotionConfidenceApp:
                              colors.get(emotion, (0, 0, 0)), 
                              -1)
                 
-                # Draw score text
+               
                 cv2.putText(bar_chart, f"{score:.1f}%", (100 + bar_width + 5, start_y + 15), 
                            cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1)
                 
@@ -216,52 +215,47 @@ class EmotionConfidenceApp:
             return bar_chart
         except Exception as e:
             print(f"Error creating emotion bar: {str(e)}")
-            # Return a blank image if there's an error
             return np.ones((height, width, 3), dtype=np.uint8) * 240
 
     def create_dashboard(self):
         """Create the dashboard display with video, confidence metrics and emotion."""
         try:
-            # Create a blank dashboard (light gray background)
             dashboard = np.ones((720, 1200, 3), dtype=np.uint8) * 240
             
-            # If we have a valid frame, resize and display it
             if self.frame is not None:
-                # Resize the video frame to fit the left side of dashboard
                 video_display = cv2.resize(self.frame, (600, 450))
                 dashboard[50:500, 50:650] = video_display
             
-            # Add confidence plot
+            
             plot_img = self.update_plot()
             plot_h, plot_w = plot_img.shape[:2]
             dashboard[50:50+plot_h, 700:700+plot_w] = plot_img
             
-            # Add emotion bar chart
+            
             emotion_bars = self.create_emotion_bar(self.current_emotion_scores)
             e_h, e_w = emotion_bars.shape[:2]
             dashboard[350:350+e_h, 700:700+e_w] = emotion_bars
             
-            # Add current confidence score with a gauge-like visualization
-            # Draw a background bar
+            
             cv2.rectangle(dashboard, (700, 550), (1100, 600), (220, 220, 220), -1)
-            # Draw the filled portion based on confidence
+           
             fill_width = int(400 * (self.current_confidence / 100))
             color = self.get_color_for_confidence(self.current_confidence)
             cv2.rectangle(dashboard, (700, 550), (700 + fill_width, 600), color, -1)
             
-            # Add text labels and information
+            
             cv2.putText(dashboard, f"Overall Confidence: {self.current_confidence:.1f}%", 
                        (700, 540), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (30, 30, 30), 2)
             
-            # Add detected emotion
+            
             cv2.putText(dashboard, f"Primary Emotion: {self.current_emotion}", 
                        (700, 330), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (30, 30, 30), 2)
             
-            # Add confidence breakdown explanation
+            
             cv2.putText(dashboard, "Confidence Factors:", 
                        (50, 540), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (30, 30, 30), 2)
             
-            # Only show detailed factors if we have a valid emotion
+            
             if self.current_emotion != "unknown" and self.current_emotion in self.emotion_confidence_scores:
                 emotion_base = self.emotion_confidence_scores[self.current_emotion]
                 emotion_detect = self.current_emotion_scores.get(self.current_emotion, 0)
@@ -298,17 +292,17 @@ class EmotionConfidenceApp:
                            (60, y_pos), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (30, 30, 30), 1)
                 y_pos += 30
             
-            # Add FPS counter
+            
             elapsed_time = max(1, time.time() - self.start_time)
             fps = self.frame_count / elapsed_time
             cv2.putText(dashboard, f"FPS: {fps:.1f}", 
                        (1100, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (100, 100, 100), 1)
             
-            # Add title
+            
             cv2.putText(dashboard, "Emotion-Based Confidence Analysis", 
                        (400, 30), cv2.FONT_HERSHEY_DUPLEX, 1, (30, 30, 30), 2)
             
-            # Add status message at the bottom
+           
             if self.current_emotion == "unknown":
                 status_msg = "Status: Waiting for face detection..."
             else:
@@ -320,7 +314,7 @@ class EmotionConfidenceApp:
             return dashboard
         except Exception as e:
             print(f"Error creating dashboard: {str(e)}")
-            # Return a simple error message display if dashboard creation fails
+            
             error_dashboard = np.ones((720, 1200, 3), dtype=np.uint8) * 240
             cv2.putText(error_dashboard, "Error creating dashboard", 
                        (400, 360), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
@@ -329,11 +323,11 @@ class EmotionConfidenceApp:
     def get_color_for_confidence(self, confidence):
         """Return a color based on confidence level (from red to green)."""
         if confidence < 30:
-            return (0, 0, 180)  # Red
+            return (0, 0, 180)  
         elif confidence < 60:
-            return (0, 180, 180)  # Yellow
+            return (0, 180, 180)  
         else:
-            return (0, 180, 0)  # Green
+            return (0, 180, 0)  
 
     def run(self):
         """Main application loop."""
@@ -345,19 +339,19 @@ class EmotionConfidenceApp:
                 ret, self.frame = self.cap.read()
                 if not ret or self.frame is None:
                     print("Failed to grab frame, trying again...")
-                    # Attempt to reopen the camera if frame grabbing fails
+                    
                     self.cap.release()
                     time.sleep(0.5)
                     self.cap = cv2.VideoCapture(0)
                     continue
                 
-                # Mirror the frame for more intuitive display
+               
                 self.frame = cv2.flip(self.frame, 1)
                 
-                # Convert to grayscale for face detection
+               
                 gray = cv2.cvtColor(self.frame, cv2.COLOR_BGR2GRAY)
                 
-                # Detect faces using Haar Cascade
+               
                 faces = self.face_cascade.detectMultiScale(
                     gray, 
                     scaleFactor=1.1, 
@@ -366,54 +360,52 @@ class EmotionConfidenceApp:
                 )
                 
                 if len(faces) > 0:
-                    # For simplicity, process the largest face
+                   
                     face = max(faces, key=lambda f: f[2] * f[3])
                     x, y, w, h = face
                     
-                    # Extract face ROI
+                    
                     face_roi = self.frame[y:y+h, x:x+w].copy()
                     
-                    # Calculate confidence score and get emotion
+                   
                     confidence, emotion, emotion_scores = self.calculate_confidence(face_roi, (x, y, w, h))
                     self.current_confidence = confidence
                     self.current_emotion = emotion
                     self.current_emotion_scores = emotion_scores
                     self.confidence_history.append(confidence)
                     
-                    # Draw rectangle around face
+                    
                     cv2.rectangle(self.frame, (x, y), (x+w, y+h), (0, 255, 0), 2)
                     
-                    # Display confidence and emotion near the face
+                    
                     cv2.putText(self.frame, f"{emotion.capitalize()}", (x, y-25), 
                                cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
                     cv2.putText(self.frame, f"Confidence: {confidence:.1f}%", (x, y-5), 
                                cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
                 else:
-                    # No face detected
+                   
                     if self.confidence_history[-1] != 0:
                         self.confidence_history.append(0)
                     self.current_confidence = 0
                     self.current_emotion = "unknown"
                     self.current_emotion_scores = {}
                 
-                # Create the dashboard display
+               
                 dashboard = self.create_dashboard()
                 
-                # Display the dashboard
+               
                 cv2.imshow('Emotion Confidence Monitor', dashboard)
                 
-                # Update frame counter for FPS calculation
+               
                 self.frame_count += 1
                 
-                # Exit on 'q' press
+                
                 if cv2.waitKey(1) & 0xFF == ord('q'):
                     break
             except Exception as e:
                 print(f"Error in main loop: {str(e)}")
                 traceback.print_exc()
-                time.sleep(0.5)  # Avoid tight error loop
-        
-        # Clean up
+                time.sleep(0.5)  
         print("Shutting down...")
         self.cap.release()
         cv2.destroyAllWindows()
