@@ -5,11 +5,11 @@
   <img src="https://img.shields.io/badge/OpenCV-Enabled-brightgreen?logo=opencv&logoColor=white&style=for-the-badge" alt="OpenCV"/>
   <img src="https://img.shields.io/badge/DeepFace-Emotion%20Recognition-yellow?style=for-the-badge" alt="DeepFace"/>
   <img src="https://img.shields.io/badge/Matplotlib-Plotting-orange?logo=matplotlib&logoColor=white&style=for-the-badge" alt="Matplotlib"/>
----
+
 
 ## 🚀 Overview
 
-**Candidate-Confidence-Monitoring-System** is a real-time computer vision application designed to analyze and monitor a candidate's confidence level based on facial emotions and other visual cues.Leveraging state-of-the-art deep learning libraries, this system captures video from a webcam, detects the user's face, predicts their emotional state, and computes a dynamic "confidence score." The results are visualized through a live dashboard, making it useful for mock interviews, public speaking training, online assessments, or any scenario where confidence monitoring is valuable.
+**Candidate-Confidence-Monitoring-System** is a real-time computer vision application designed to analyze and monitor a candidate's confidence level based on facial emotions and other visual cues. Leveraging state-of-the-art deep learning libraries, this system captures video from a webcam, detects the user's face, predicts their emotional state, and computes a dynamic "confidence score." The results are visualized through a live dashboard, making it useful for mock interviews, public speaking training, online assessments, or any scenario where confidence monitoring is valuable.
 
 
 ---
